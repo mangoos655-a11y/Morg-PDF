@@ -1,0 +1,47 @@
+name: Build Morgan PDF APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+
+      - name: Generate Android Folder & Configure Offline + Old Android Support
+        run: |
+          flutter create --platforms=android --org com.morgan.pdf .
+          # دعم التابلت والأجهزة القديمة منذ 2015/2016 (Android 5.0 API 21)
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle
+          # حذف صلاحية الإنترنت تماماً وإضافة صلاحية قراءة الملفات للأجهزة القديمة والحديثة
+          sed -i '/android.permission.INTERNET/d' android/app/src/main/AndroidManifest.xml
+          sed -i '/<application/i <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>\n<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>' android/app/src/main/AndroidManifest.xml
+          sed -i 's/android:label="morgan_pdf"/android:label="Morgan PDF"/g' android/app/src/main/AndroidManifest.xml
+
+      - name: Install Dependencies & Build APK
+        run: |
+          flutter pub get
+          flutter build apk --release
+
+      - name: Upload Ready APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Morgan-PDF-Installer
+          path: build/app/outputs/flutter-apk/app-release.apk
+          
