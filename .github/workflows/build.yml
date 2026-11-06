@@ -25,13 +25,24 @@ jobs:
 
       - name: Generate Android Folder & Configure Offline + Old Android Support
         run: |
-          flutter create --platforms=android --org com.morgan.pdf .
+          # حفظ ملفاتنا الأساسية قبل توليد مجلد الأندرويد
+          cp lib/main.dart /tmp/main.dart
+          cp pubspec.yaml /tmp/pubspec.yaml
+          
+          # توليد ملفات الأندرويد مع تحديد اسم المشروع صراحة
+          flutter create --platforms=android --project-name morgan_pdf --org com.morgan.pdf .
+          
+          # استرجاع كود التطبيق والمكتبات الخاصة بنا
+          cp /tmp/main.dart lib/main.dart
+          cp /tmp/pubspec.yaml pubspec.yaml
+          
           # دعم التابلت والأجهزة القديمة منذ 2015/2016 (Android 5.0 API 21)
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle
           sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle
-          # حذف صلاحية الإنترنت تماماً وإضافة صلاحية قراءة الملفات للأجهزة القديمة والحديثة
+          
+          # حذف صلاحية الإنترنت تماماً وإضافة صلاحيات قراءة وحفظ الملفات
           sed -i '/android.permission.INTERNET/d' android/app/src/main/AndroidManifest.xml
-          sed -i '/<application/i <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>\n<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>' android/app/src/main/AndroidManifest.xml
+          sed -i 's/<application/<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"\/>\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"\/>\n    <application/g' android/app/src/main/AndroidManifest.xml
           sed -i 's/android:label="morgan_pdf"/android:label="Morgan PDF"/g' android/app/src/main/AndroidManifest.xml
 
       - name: Install Dependencies & Build APK
