@@ -1,33 +1,27 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:pdfx/pdfx.dart' as pdfx;
-import 'package:pdf/pdf.dart' as pw_pdf;
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MorganPdfProApp());
+  runApp(const MorganPdfApp());
 }
 
-class MorganPdfProApp extends StatefulWidget {
-  const MorganPdfProApp({super.key});
+class MorganPdfApp extends StatefulWidget {
+  const MorganPdfApp({super.key});
 
   @override
-  State<MorganPdfProApp> createState() => _MorganPdfProAppState();
+  State<MorganPdfApp> createState() => _MorganPdfAppState();
 }
 
-class _MorganPdfProAppState extends State<MorganPdfProApp> {
+class _MorganPdfAppState extends State<MorganPdfApp> {
   ThemeMode _themeMode = ThemeMode.system;
   Color _seedColor = Colors.blue.shade800;
   bool _isArabic = true;
@@ -37,10 +31,10 @@ class _MorganPdfProAppState extends State<MorganPdfProApp> {
   @override
   void initState() {
     super.initState();
-    _loadAppSettings();
+    _loadSettings();
   }
 
-  Future<void> _loadAppSettings() async {
+  Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       final t = prefs.getString('theme_mode') ?? 'system';
@@ -87,73 +81,37 @@ class _MorganPdfProAppState extends State<MorganPdfProApp> {
           textDirection: _isArabic ? TextDirection.rtl : TextDirection.ltr,
           child: _isUnlocked
               ? child!
-              : PinLockScreen(
-                  correctPin: _savedPin!,
-                  onUnlocked: () => setState(() => _isUnlocked = true),
+              : Scaffold(
+                  body: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.lock_outline, size: 64, color: Colors.blue),
+                          const SizedBox(height: 16),
+                          const Text('أدخل الرقم السري لفتح Morgan PDF', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 16),
+                          TextField(
+                            obscureText: true,
+                            keyboardType: TextInputType.number,
+                            textAlign: TextAlign.center,
+                            decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'PIN'),
+                            onSubmitted: (val) {
+                              if (val == _savedPin) setState(() => _isUnlocked = true);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
         );
       },
       home: MainWorkspace(
         isArabic: _isArabic,
-        seedColor: _seedColor,
         themeMode: _themeMode,
         onUpdateSettings: _updateSettings,
-      ),
-    );
-  }
-}
-
-class PinLockScreen extends StatefulWidget {
-  final String correctPin;
-  final VoidCallback onUnlocked;
-  const PinLockScreen({super.key, required this.correctPin, required this.onUnlocked});
-
-  @override
-  State<PinLockScreen> createState() => _PinLockScreenState();
-}
-
-class _PinLockScreenState extends State<PinLockScreen> {
-  final TextEditingController _ctrl = TextEditingController();
-  String _error = '';
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.lock_outline, size: 70, color: Colors.blue),
-              const SizedBox(height: 16),
-              const Text('التطبيق محمي برقم سري (PIN)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _ctrl,
-                obscureText: true,
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                decoration: InputDecoration(
-                  hintText: 'أدخل الرقم السري',
-                  errorText: _error.isEmpty ? null : _error,
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  if (_ctrl.text == widget.correctPin) {
-                    widget.onUnlocked();
-                  } else {
-                    setState(() => _error = 'الرقم السري غير صحيح');
-                  }
-                },
-                child: const Text('دخول'),
-              )
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -173,8 +131,8 @@ class MorganLogo extends StatelessWidget {
         children: [
           Icon(Icons.menu_book_rounded, size: size * 0.85, color: Colors.blue.shade800),
           Positioned(
-            right: size * 0.05,
-            bottom: size * 0.05,
+            right: size * 0.06,
+            bottom: size * 0.06,
             child: Container(
               padding: EdgeInsets.all(size * 0.07),
               decoration: BoxDecoration(
@@ -197,14 +155,12 @@ class MorganLogo extends StatelessWidget {
 
 class MainWorkspace extends StatefulWidget {
   final bool isArabic;
-  final Color seedColor;
   final ThemeMode themeMode;
   final Function({ThemeMode? mode, Color? color, bool? arabic, String? pin}) onUpdateSettings;
 
   const MainWorkspace({
     super.key,
     required this.isArabic,
-    required this.seedColor,
     required this.themeMode,
     required this.onUpdateSettings,
   });
@@ -214,230 +170,116 @@ class MainWorkspace extends StatefulWidget {
 }
 
 class _MainWorkspaceState extends State<MainWorkspace> {
-  static const MethodChannel _intentChannel = MethodChannel('com.morgan.pdf/intent');
   int _navIndex = 0;
-
   List<String> _recentFiles = [];
-  List<String> _favoriteFiles = [];
+  List<String> _favFiles = [];
   Map<String, String> _fileTags = {};
   List<String> _openTabs = [];
-  int _activeTabIndex = 0;
+  int _activeTab = 0;
+  StreamSubscription? _intentSub;
 
   @override
   void initState() {
     super.initState();
-    _loadFilesData();
-    _checkExternalIntent();
+    _loadData();
+    _listenExternalFiles();
   }
 
-  Future<void> _checkExternalIntent() async {
-    try {
-      final String? initialPath = await _intentChannel.invokeMethod<String>('getInitialFile');
-      if (initialPath != null && initialPath.isNotEmpty) {
-        _addAndOpenFile(initialPath);
-      }
-      _intentChannel.setMethodCallHandler((call) async {
-        if (call.method == 'onNewFile' && call.arguments != null) {
-          final String path = call.arguments as String;
-          if (path.isNotEmpty) _addAndOpenFile(path);
-        }
-      });
-    } catch (_) {}
+  void _listenExternalFiles() {
+    _intentSub = ReceiveSharingIntent.getMediaStream().listen((List<SharedMediaFile> value) {
+      if (value.isNotEmpty) _openPdfFile(value.first.path);
+    }, onError: (_) {});
+
+    ReceiveSharingIntent.getInitialMedia().then((List<SharedMediaFile> value) {
+      if (value.isNotEmpty) _openPdfFile(value.first.path);
+    });
   }
 
-  Future<void> _loadFilesData() async {
+  @override
+  void dispose() {
+    _intentSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _recentFiles = prefs.getStringList('recent_files') ?? [];
-      _favoriteFiles = prefs.getStringList('fav_files') ?? [];
-      final tagsList = prefs.getStringList('file_tags') ?? [];
+      _favFiles = prefs.getStringList('fav_files') ?? [];
+      final tags = prefs.getStringList('file_tags') ?? [];
       _fileTags = {
-        for (var item in tagsList)
-          if (item.contains('||')) item.split('||')[0]: item.split('||')[1]
+        for (var t in tags)
+          if (t.contains('||')) t.split('||')[0]: t.split('||')[1]
       };
     });
   }
 
-  Future<void> _saveFilesData() async {
+  Future<void> _saveData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('recent_files', _recentFiles);
-    await prefs.setStringList('fav_files', _favoriteFiles);
-    await prefs.setStringList(
-      'file_tags',
-      _fileTags.entries.map((e) => '${e.key}||${e.value}').toList(),
-    );
+    await prefs.setStringList('fav_files', _favFiles);
+    await prefs.setStringList('file_tags', _fileTags.entries.map((e) => '${e.key}||${e.value}').toList());
   }
 
-  void _addAndOpenFile(String path) async {
-    if (!File(path).existsSync()) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذر قراءة الملف، تأكد من إعطاء صلاحية الملفات للتطبيق')),
-        );
-      }
-      return;
-    }
-    _recentFiles.remove(path);
-    _recentFiles.insert(0, path);
-    if (!_openTabs.contains(path)) {
-      _openTabs.add(path);
-    }
-    _activeTabIndex = _openTabs.indexOf(path);
-    await _saveFilesData();
-    setState(() => _navIndex = 1);
-  }
-
-  Future<void> _pickPdfFile() async {
+  Future<void> _pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
     );
     if (result != null && result.files.single.path != null) {
-      _addAndOpenFile(result.files.single.path!);
+      _openPdfFile(result.files.single.path!);
     }
   }
 
-  Future<void> _convertImagesToPdf({required bool fromCamera}) async {
-    final picker = ImagePicker();
-    List<XFile> images = [];
-    if (fromCamera) {
-      final photo = await picker.pickImage(source: ImageSource.camera);
-      if (photo != null) images.add(photo);
-    } else {
-      images = await picker.pickMultiImage();
-    }
-    if (images.isEmpty) return;
-
-    final pdf = pw.Document();
-    for (var img in images) {
-      final bytes = await File(img.path).readAsBytes();
-      final pwImage = pw.MemoryImage(bytes);
-      pdf.addPage(
-        pw.Page(
-          pageFormat: pw_pdf.PdfPageFormat.a4,
-          build: (pw.Context ctx) => pw.Center(child: pw.Image(pwImage, fit: pw.BoxFit.contain)),
-        ),
-      );
-    }
-
-    final dir = await getApplicationDocumentsDirectory();
-    final outFile = File('${dir.path}/Scanned_${DateTime.now().millisecondsSinceEpoch}.pdf');
-    await outFile.writeAsBytes(await pdf.save());
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إنشاء ملف الـ PDF بنجاح!')));
-    }
-    _addAndOpenFile(outFile.path);
-  }
-
-  Future<void> _createCustomPdfDialog() async {
-    final titleCtrl = TextEditingController(text: 'مذكرة جديدة');
-    final watermarkCtrl = TextEditingController();
-    final pagesCtrl = TextEditingController(text: '5');
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('إنشاء ملف PDF / علامة مائية'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'عنوان الملف (Header)')),
-            TextField(controller: watermarkCtrl, decoration: const InputDecoration(labelText: 'نص العلامة المائية (اختياري)')),
-            TextField(controller: pagesCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'عدد الصفحات')),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final pdf = pw.Document();
-              final count = int.tryParse(pagesCtrl.text) ?? 1;
-              for (int i = 1; i <= count; i++) {
-                pdf.addPage(
-                  pw.Page(
-                    pageFormat: pw_pdf.PdfPageFormat.a4,
-                    build: (pw.Context c) => pw.Stack(
-                      children: [
-                        if (watermarkCtrl.text.isNotEmpty)
-                          pw.Center(
-                            child: pw.Transform.rotate(
-                              angle: -0.5,
-                              child: pw.Text(
-                                watermarkCtrl.text,
-                                style: pw.TextStyle(fontSize: 45, color: pw_pdf.PdfColors.grey300),
-                              ),
-                            ),
-                          ),
-                        pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-                          children: [
-                            pw.Text(titleCtrl.text, style: const pw.TextStyle(fontSize: 12, color: pw_pdf.PdfColors.grey700)),
-                            pw.Divider(),
-                            pw.Spacer(),
-                            pw.Divider(),
-                            pw.Align(
-                              alignment: pw.Alignment.centerRight,
-                              child: pw.Text('Page $i of $count', style: const pw.TextStyle(fontSize: 10)),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-              final dir = await getApplicationDocumentsDirectory();
-              final f = File('${dir.path}/${titleCtrl.text}_${DateTime.now().millisecondsSinceEpoch}.pdf');
-              await f.writeAsBytes(await pdf.save());
-              _addAndOpenFile(f.path);
-            },
-            child: const Text('إنشاء وفتح'),
-          ),
-        ],
-      ),
-    );
+  void _openPdfFile(String path) {
+    if (!File(path).existsSync()) return;
+    setState(() {
+      _recentFiles.remove(path);
+      _recentFiles.insert(0, path);
+      if (!_openTabs.contains(path)) _openTabs.add(path);
+      _activeTab = _openTabs.indexOf(path);
+      _navIndex = 1;
+    });
+    _saveData();
   }
 
   @override
   Widget build(BuildContext context) {
-    final screens = [
-      _buildHomeFilesTab(),
-      _buildReaderTabsScreen(),
-      _buildToolsAndConvertTab(),
+    final pages = [
+      _buildFilesTab(),
+      _buildReaderTabsView(),
       _buildSettingsTab(),
     ];
 
     return Scaffold(
-      body: screens[_navIndex],
+      body: pages[_navIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _navIndex,
-        onDestinationSelected: (idx) => setState(() => _navIndex = idx),
+        onDestinationSelected: (i) => setState(() => _navIndex = i),
         destinations: [
-          const NavigationDestination(icon: Icon(Icons.folder_copy_outlined), label: 'الملفات'),
+          const NavigationDestination(icon: Icon(Icons.folder_outlined), label: 'الملفات والمجلدات'),
           NavigationDestination(
             icon: Badge(
               isLabelVisible: _openTabs.isNotEmpty,
               label: Text('${_openTabs.length}'),
-              child: const Icon(Icons.chrome_reader_mode_outlined),
+              child: const Icon(Icons.menu_book_rounded),
             ),
             label: 'القارئ والتبويبات',
           ),
-          const NavigationDestination(icon: Icon(Icons.build_circle_outlined), label: 'الأدوات والتحويل'),
-          const NavigationDestination(icon: Icon(Icons.settings_outlined), label: 'الإعدادات'),
+          const NavigationDestination(icon: Icon(Icons.settings_outlined), label: 'الإعدادات والحماية'),
         ],
       ),
     );
   }
 
-  Widget _buildHomeFilesTab() {
+  Widget _buildFilesTab() {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Row(
             children: [
-              MorganLogo(size: 38),
+              MorganLogo(size: 36),
               SizedBox(width: 10),
               Text('Morgan PDF Pro', style: TextStyle(fontWeight: FontWeight.bold)),
             ],
@@ -445,136 +287,122 @@ class _MainWorkspaceState extends State<MainWorkspace> {
           bottom: const TabBar(
             tabs: [
               Tab(text: 'الأخيرة', icon: Icon(Icons.history)),
-              Tab(text: 'المفضلة', icon: Icon(Icons.star_border)),
-              Tab(text: 'المجلدات/الأوسمة', icon: Icon(Icons.label_outline)),
+              Tab(text: 'المفضلة ⭐', icon: Icon(Icons.star_outline)),
+              Tab(text: 'المجلدات 📁', icon: Icon(Icons.folder_special_outlined)),
             ],
           ),
         ),
         body: TabBarView(
           children: [
-            _buildFileList(_recentFiles),
-            _buildFileList(_favoriteFiles),
-            _buildTaggedFilesView(),
+            _buildFileListView(_recentFiles),
+            _buildFileListView(_favFiles),
+            _buildFoldersView(),
           ],
         ),
         floatingActionButton: FloatingActionButton.extended(
-          onPressed: _pickPdfFile,
-          icon: const Icon(Icons.file_open),
+          onPressed: _pickFile,
+          icon: const Icon(Icons.folder_open),
           label: const Text('فتح ملف PDF'),
         ),
       ),
     );
   }
 
-  Widget _buildFileList(List<String> files) {
-    if (files.isEmpty) {
+  Widget _buildFileListView(List<String> list) {
+    if (list.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const MorganLogo(size: 95),
             const SizedBox(height: 12),
-            const Text('لا توجد ملفات في هذه القائمة بعد'),
+            const Text('لا توجد ملفات هنا بعد، افتح ملفاً للبدء'),
             const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _pickPdfFile,
-              icon: const Icon(Icons.folder_open),
-              label: const Text('استعراض ملفات الجهاز'),
-            ),
+            ElevatedButton.icon(onPressed: _pickFile, icon: const Icon(Icons.add), label: const Text('اختيار ملف من الجهاز')),
           ],
         ),
       );
     }
     return ListView.builder(
-      itemCount: files.length,
-      itemBuilder: (context, index) {
-        final path = files[index];
+      itemCount: list.length,
+      itemBuilder: (ctx, i) {
+        final path = list[i];
         final name = path.split('/').last;
-        final isFav = _favoriteFiles.contains(path);
-        final tag = _fileTags[path];
+        final isFav = _favFiles.contains(path);
+        final folder = _fileTags[path];
 
         return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: ListTile(
-            leading: Icon(Icons.picture_as_pdf, color: Colors.blue.shade800, size: 36),
-            title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+            leading: Icon(Icons.picture_as_pdf, color: Colors.blue.shade800, size: 34),
+            title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: FutureBuilder<SharedPreferences>(
               future: SharedPreferences.getInstance(),
-              builder: (ctx, snap) {
-                final lastPage = snap.data?.getInt('page_$path') ?? 1;
-                return Text('آخر صفحة: $lastPage ${tag != null ? " • 📁 $tag" : ""}');
+              builder: (c, s) {
+                final p = s.data?.getInt('page_$path') ?? 1;
+                return Text('متوقف عند صفحة: $p ${folder != null ? " • 📁 $folder" : ""}');
               },
             ),
             trailing: PopupMenuButton<String>(
-              onSelected: (val) async {
-                if (val == 'fav') {
-                  setState(() {
-                    isFav ? _favoriteFiles.remove(path) : _favoriteFiles.add(path);
-                  });
-                  _saveFilesData();
-                } else if (val == 'tag') {
-                  _assignTagDialog(path);
-                } else if (val == 'rename') {
-                  _renameFileDialog(path);
-                } else if (val == 'share') {
+              onSelected: (v) {
+                if (v == 'fav') {
+                  setState(() => isFav ? _favFiles.remove(path) : _favFiles.add(path));
+                  _saveData();
+                } else if (v == 'tag') {
+                  _setFolderDialog(path);
+                } else if (v == 'share') {
                   Share.shareXFiles([XFile(path)]);
-                } else if (val == 'remove') {
+                } else if (v == 'del') {
                   setState(() {
                     _recentFiles.remove(path);
-                    _favoriteFiles.remove(path);
+                    _favFiles.remove(path);
                   });
-                  _saveFilesData();
+                  _saveData();
                 }
               },
-              itemBuilder: (ctx) => [
+              itemBuilder: (c) => [
                 PopupMenuItem(value: 'fav', child: Text(isFav ? 'إزالة من المفضلة' : 'إضافة للمفضلة ⭐')),
-                const PopupMenuItem(value: 'tag', child: Text('وضع في مجلد / وسم 📁')),
-                const PopupMenuItem(value: 'rename', child: Text('إعادة تسمية الملف ✏️')),
-                const PopupMenuItem(value: 'share', child: Text('مشاركة أو طباعة 🖨️')),
-                const PopupMenuItem(value: 'remove', child: Text('إزالة من القائمة 🗑️')),
+                const PopupMenuItem(value: 'tag', child: Text('تعيين مجلد المادة 📁')),
+                const PopupMenuItem(value: 'share', child: Text('مشاركة / طباعة (NokoPrint) 🖨️')),
+                const PopupMenuItem(value: 'del', child: Text('حذف من القائمة 🗑️')),
               ],
             ),
-            onTap: () => _addAndOpenFile(path),
+            onTap: () => _openPdfFile(path),
           ),
         );
       },
     );
   }
 
-  Widget _buildTaggedFilesView() {
+  Widget _buildFoldersView() {
     if (_fileTags.isEmpty) {
-      return const Center(child: Text('اضغط على النقاط الثلاث بجانب أي ملف لإضافته لمجلد مادة (مثل: جراحة، باطنة، أطفال)'));
+      return const Center(child: Text('اضغط على النقاط الثلاث بجانب أي ملف لإضافته لمجلد (مثل: جراحة، أطفال، نسا)'));
     }
     final folders = _fileTags.values.toSet().toList();
     return ListView.builder(
       itemCount: folders.length,
       itemBuilder: (ctx, i) {
-        final folderName = folders[i];
-        final paths = _fileTags.entries.where((e) => e.value == folderName).map((e) => e.key).toList();
+        final fName = folders[i];
+        final paths = _fileTags.entries.where((e) => e.value == fName).map((e) => e.key).toList();
         return ExpansionTile(
-          leading: const Icon(Icons.folder_special, color: Colors.amber),
-          title: Text(folderName, style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text('${paths.length} ملفات'),
+          leading: const Icon(Icons.folder, color: Colors.amber),
+          title: Text(fName, style: const TextStyle(fontWeight: FontWeight.bold)),
           children: paths.map((p) => ListTile(
             title: Text(p.split('/').last),
-            leading: const Icon(Icons.picture_as_pdf, size: 20),
-            onTap: () => _addAndOpenFile(p),
+            onTap: () => _openPdfFile(p),
           )).toList(),
         );
       },
     );
   }
 
-  void _assignTagDialog(String path) {
+  void _setFolderDialog(String path) {
     final ctrl = TextEditingController(text: _fileTags[path] ?? '');
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('تحديد مجلد / وسم المادة'),
-        content: TextField(
-          controller: ctrl,
-          decoration: const InputDecoration(hintText: 'مثال: جراحة، أطفال، نسا وتوليد...'),
-        ),
+        title: const Text('اسم مجلد المادة'),
+        content: TextField(controller: ctrl, decoration: const InputDecoration(hintText: 'مثال: جراحة، أطفال، باطنة...')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
           ElevatedButton(
@@ -586,7 +414,7 @@ class _MainWorkspaceState extends State<MainWorkspace> {
                   _fileTags[path] = ctrl.text.trim();
                 }
               });
-              _saveFilesData();
+              _saveData();
               Navigator.pop(ctx);
             },
             child: const Text('حفظ'),
@@ -596,222 +424,64 @@ class _MainWorkspaceState extends State<MainWorkspace> {
     );
   }
 
-  void _renameFileDialog(String oldPath) {
-    final file = File(oldPath);
-    final dir = file.parent.path;
-    final ctrl = TextEditingController(text: oldPath.split('/').last.replaceAll('.pdf', ''));
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('إعادة تسمية الملف'),
-        content: TextField(controller: ctrl),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                final newPath = '$dir/${ctrl.text.trim()}.pdf';
-                await file.rename(newPath);
-                setState(() {
-                  final idx = _recentFiles.indexOf(oldPath);
-                  if (idx != -1) _recentFiles[idx] = newPath;
-                });
-                _saveFilesData();
-              } catch (_) {}
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('حفظ'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReaderTabsScreen() {
+  Widget _buildReaderTabsView() {
     if (_openTabs.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('القارئ السلس')),
         body: Center(
-          child: ElevatedButton.icon(
-            onPressed: _pickPdfFile,
-            icon: const Icon(Icons.add),
-            label: const Text('افتح ملف PDF للبدء'),
-          ),
+          child: ElevatedButton.icon(onPressed: _pickFile, icon: const Icon(Icons.folder_open), label: const Text('افتح ملف PDF للمذاكرة')),
         ),
       );
     }
+    if (_activeTab >= _openTabs.length) _activeTab = 0;
+    final currentPath = _openTabs[_activeTab];
 
-    if (_activeTabIndex >= _openTabs.length) _activeTabIndex = 0;
-    final activePath = _openTabs[_activeTabIndex];
-
-    return Column(
-      children: [
-        Container(
-          color: Theme.of(context).colorScheme.surfaceVariant,
-          height: 44,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _openTabs.length + 1,
-            itemBuilder: (ctx, i) {
-              if (i == _openTabs.length) {
-                return IconButton(icon: const Icon(Icons.add_circle_outline), onPressed: _pickPdfFile, tooltip: 'فتح تبويب جديد');
-              }
-              final isSelected = i == _activeTabIndex;
-              final name = _openTabs[i].split('/').last;
-              return GestureDetector(
-                onTap: () => setState(() => _activeTabIndex = i),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  decoration: BoxDecoration(
-                    color: isSelected ? Theme.of(context).colorScheme.primaryContainer : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        name.length > 18 ? '${name.substring(0, 18)}...' : name,
-                        style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, fontSize: 12),
-                      ),
-                      const SizedBox(width: 4),
-                      InkWell(
-                        onTap: () => setState(() => _openTabs.removeAt(i)),
-                        child: const Icon(Icons.close, size: 15),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        Expanded(
-          child: SmoothPdfReaderView(
-            key: ValueKey(activePath),
-            filePath: activePath,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildToolsAndConvertTab() {
-    return Scaffold(
-      appBar: AppBar(title: const Text('أدوات PDF والتحويل والإدارة')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    return SafeArea(
+      child: Column(
         children: [
-          _buildToolSectionTitle('التحويل والمسح الضوئي (Offline)'),
-          _buildToolTile(
-            icon: Icons.camera_alt_outlined,
-            title: 'مسح بالكاميرا إلى PDF (Scanner)',
-            subtitle: 'تصوير ملازم أو أوراق وتحويلها فوراً لملف PDF',
-            onTap: () => _convertImagesToPdf(fromCamera: true),
+          Container(
+            height: 42,
+            color: Theme.of(context).colorScheme.surfaceVariant,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _openTabs.length + 1,
+              itemBuilder: (ctx, i) {
+                if (i == _openTabs.length) {
+                  return IconButton(icon: const Icon(Icons.add), onPressed: _pickFile);
+                }
+                final selected = i == _activeTab;
+                final title = _openTabs[i].split('/').last;
+                return GestureDetector(
+                  onTap: () => setState(() => _activeTab = i),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: selected ? Theme.of(context).colorScheme.primaryContainer : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(title.length > 16 ? '${title.substring(0, 16)}...' : title, style: const TextStyle(fontSize: 12)),
+                        const SizedBox(width: 6),
+                        InkWell(
+                          onTap: () => setState(() => _openTabs.removeAt(i)),
+                          child: const Icon(Icons.close, size: 15),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
-          _buildToolTile(
-            icon: Icons.photo_library_outlined,
-            title: 'تحويل صور إلى PDF',
-            subtitle: 'دمج عدة صور من المعرض في كتاب PDF واحد',
-            onTap: () => _convertImagesToPdf(fromCamera: false),
-          ),
-          _buildToolTile(
-            icon: Icons.image_outlined,
-            title: 'تصدير صفحات PDF إلى صور عالية الجودة',
-            subtitle: 'اختر ملف PDF وحول صفحاته لصور PNG',
-            onTap: _exportPdfPageToImage,
-          ),
-          const Divider(height: 28),
-          _buildToolSectionTitle('إدارة الصفحات والإنشاء والنماذج'),
-          _buildToolTile(
-            icon: Icons.note_add_outlined,
-            title: 'إنشاء ملف PDF جديد / علامة مائية / ترقيم صفحات',
-            subtitle: 'توليد مذكرة مرقمة مع Header/Footer وعلامة مائية مخصصة',
-            onTap: _createCustomPdfDialog,
-          ),
-          _buildToolTile(
-            icon: Icons.compare_arrows,
-            title: 'مقارنة ملفين PDF',
-            subtitle: 'فحص سريع لعدد الصفحات وحجم الفروقات بين نسختين',
-            onTap: _compareTwoPdfs,
-          ),
-          _buildToolTile(
-            icon: Icons.print_outlined,
-            title: 'الطباعة المباشرة أو ضغط ومشاركة الملف',
-            subtitle: 'إرسال لتطبيق الطباعة (NokoPrint / PrinterShare)',
-            onTap: () async {
-              if (_openTabs.isNotEmpty) {
-                final bytes = await File(_openTabs[_activeTabIndex]).readAsBytes();
-                await Printing.layoutPdf(onLayout: (_) async => bytes);
-              } else {
-                _pickPdfFile();
-              }
-            },
+          Expanded(
+            child: AdvancedPdfViewer(
+              key: ValueKey(currentPath),
+              filePath: currentPath,
+            ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildToolSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8, top: 4),
-      child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue)),
-    );
-  }
-
-  Widget _buildToolTile({required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        leading: CircleAvatar(child: Icon(icon)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: onTap,
-      ),
-    );
-  }
-
-  Future<void> _exportPdfPageToImage() async {
-    FilePickerResult? res = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
-    if (res == null || res.files.single.path == null) return;
-    final doc = await pdfx.PdfDocument.openFile(res.files.single.path!);
-    final page = await doc.getPage(1);
-    final pageImage = await page.render(width: page.width * 2, height: page.height * 2, format: pdfx.PdfPageImageFormat.png);
-    await page.close();
-    if (pageImage != null) {
-      final dir = await getTemporaryDirectory();
-      final imgFile = File('${dir.path}/page_1.png');
-      await imgFile.writeAsBytes(pageImage.bytes);
-      await Share.shareXFiles([XFile(imgFile.path)], text: 'صورة الصفحة الأولى من الملف');
-    }
-  }
-
-  Future<void> _compareTwoPdfs() async {
-    FilePickerResult? r1 = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
-    if (r1 == null || r1.files.single.path == null) return;
-    FilePickerResult? r2 = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
-    if (r2 == null || r2.files.single.path == null) return;
-
-    final f1 = File(r1.files.single.path!);
-    final f2 = File(r2.files.single.path!);
-    final d1 = await pdfx.PdfDocument.openFile(f1.path);
-    final d2 = await pdfx.PdfDocument.openFile(f2.path);
-
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('نتيجة مقارنة الملفين'),
-        content: Text(
-          'الملف الأول: ${f1.path.split('/').last}\n'
-          '• عدد الصفحات: ${d1.pagesCount}\n'
-          '• الحجم: ${(f1.lengthSync() / 1024).toStringAsFixed(1)} KB\n\n'
-          'الملف الثاني: ${f2.path.split('/').last}\n'
-          '• عدد الصفحات: ${d2.pagesCount}\n'
-          '• الحجم: ${(f2.lengthSync() / 1024).toStringAsFixed(1)} KB',
-        ),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إغلاق'))],
       ),
     );
   }
@@ -823,14 +493,14 @@ class _MainWorkspaceState extends State<MainWorkspace> {
         padding: const EdgeInsets.all(16),
         children: [
           const ListTile(
-            leading: MorganLogo(size: 55),
+            leading: MorganLogo(size: 50),
             title: Text('Morgan PDF Pro v2.0', style: TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('تطبيق قراءة ومذاكرة أوفلاين 100% - بدون إعلانات'),
+            subtitle: Text('يعمل بدون إنترنت 100% - مصمم للمذاكرة السلسة'),
           ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.brightness_6),
-            title: const Text('مظهر التطبيق (فاتح / داكن / تلقائي)'),
+            title: const Text('مظهر التطبيق'),
             trailing: DropdownButton<ThemeMode>(
               value: widget.themeMode,
               onChanged: (m) => widget.onUpdateSettings(mode: m),
@@ -842,44 +512,32 @@ class _MainWorkspaceState extends State<MainWorkspace> {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.color_lens_outlined),
-            title: const Text('اللون الرئيسي للتطبيق'),
+            leading: const Icon(Icons.palette_outlined),
+            title: const Text('لون التطبيق الرئيسي'),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                Colors.blue.shade800,
-                Colors.teal.shade700,
-                Colors.indigo.shade700,
-                Colors.deepOrange.shade700,
-              ].map((c) => GestureDetector(
+              children: [Colors.blue.shade800, Colors.teal, Colors.indigo, Colors.deepOrange].map((c) => GestureDetector(
                 onTap: () => widget.onUpdateSettings(color: c),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(color: c, shape: BoxShape.circle),
-                ),
+                child: Container(margin: const EdgeInsets.all(4), width: 24, height: 24, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
               )).toList(),
             ),
           ),
           SwitchListTile(
             secondary: const Icon(Icons.language),
-            title: const Text('واجهة عربية كاملة (RTL)'),
-            subtitle: const Text('التبديل بين العربية والإنجليزية'),
+            title: const Text('واجهة عربية (RTL)'),
             value: widget.isArabic,
-            onChanged: (val) => widget.onUpdateSettings(arabic: val),
+            onChanged: (v) => widget.onUpdateSettings(arabic: v),
           ),
           ListTile(
-            leading: const Icon(Icons.security),
+            leading: const Icon(Icons.lock_outline),
             title: const Text('قفل التطبيق برقم سري (PIN)'),
-            subtitle: const Text('حماية كتبك وملفاتك عند فتح التطبيق'),
             onTap: () {
               final ctrl = TextEditingController();
               showDialog(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const Text('تعيين رقم سري (اتركه فارغاً لإلغاء القفل)'),
-                  content: TextField(controller: ctrl, keyboardType: TextInputType.number, decoration: const InputDecoration(hintText: 'أدخل 4 أرقام')),
+                  title: const Text('تعيين رقم سري (اتركه فارغاً للإلغاء)'),
+                  content: TextField(controller: ctrl, keyboardType: TextInputType.number),
                   actions: [
                     TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
                     ElevatedButton(
@@ -894,196 +552,84 @@ class _MainWorkspaceState extends State<MainWorkspace> {
               );
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.cleaning_services_outlined),
-            title: const Text('مسح الكاش والملفات المؤقتة'),
-            onTap: () async {
-              final dir = await getTemporaryDirectory();
-              dir.deleteSync(recursive: true);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تنظيف الكاش بنجاح')));
-              }
-            },
-          ),
         ],
       ),
     );
   }
 }
 
-class StrokePath {
+class DrawStroke {
   final List<Offset> points;
   final Color color;
   final double width;
-  final bool isHighlighter;
-  final bool isRedaction;
-  StrokePath({required this.points, required this.color, required this.width, this.isHighlighter = false, this.isRedaction = false});
+  DrawStroke(this.points, this.color, this.width);
 }
 
-class StickyNoteItem {
-  final int page;
-  final String text;
-  final String author;
-  StickyNoteItem({required this.page, required this.text, required this.author});
-}
-
-class SmoothPdfReaderView extends StatefulWidget {
+class AdvancedPdfViewer extends StatefulWidget {
   final String filePath;
-  const SmoothPdfReaderView({super.key, required this.filePath});
+  const AdvancedPdfViewer({super.key, required this.filePath});
 
   @override
-  State<SmoothPdfReaderView> createState() => _SmoothPdfReaderViewState();
+  State<AdvancedPdfViewer> createState() => _AdvancedPdfViewerState();
 }
 
-class _SmoothPdfReaderViewState extends State<SmoothPdfReaderView> {
-  pdfx.PdfDocument? _document;
-  final ScrollController _scrollController = ScrollController();
+class _AdvancedPdfViewerState extends State<AdvancedPdfViewer> {
+  final GlobalKey<SfPdfViewerState> _pdfKey = GlobalKey();
+  late PdfViewerController _controller;
   final FlutterTts _tts = FlutterTts();
 
-  int _totalPages = 0;
-  int _currentPage = 1;
-  bool _isLoading = true;
-  String? _errorMsg;
-
+  bool _invertColors = false;
+  double _dimOverlay = 0.0;
   bool _isHorizontal = false;
-  bool _isSinglePageMode = false;
+  bool _isSinglePage = false;
   bool _isFullScreen = false;
-  bool _isNightInverted = false;
-  double _brightnessOverlay = 0.0;
-  int _quarterTurns = 0;
-  Set<int> _userBookmarks = {};
+  int _rotation = 0;
 
-  String _activeTool = 'none';
-  Color _penColor = Colors.amber;
-  double _penWidth = 4.0;
-  final Map<int, List<StrokePath>> _pageStrokes = {};
-  final List<StrokePath> _redoStack = [];
-  final List<StickyNoteItem> _commentsList = [];
+  bool _showSearch = false;
+  final TextEditingController _searchCtrl = TextEditingController();
+  PdfTextSearchResult _searchResult = PdfTextSearchResult();
 
-  final Map<int, Uint8List> _renderedPagesCache = {};
+  bool _drawingMode = false;
+  Color _penColor = Colors.amber.withOpacity(0.45);
+  double _penWidth = 14.0;
+  final Map<int, List<DrawStroke>> _strokesByPage = {};
+  final List<DrawStroke> _redoStack = [];
 
   @override
   void initState() {
     super.initState();
+    _controller = PdfViewerController();
     WakelockPlus.enable();
-    _initDocument();
-    _scrollController.addListener(_onScrollChanged);
+    _restoreLastPage();
   }
 
-  void _onScrollChanged() {
-    if (!_scrollController.hasClients || _totalPages == 0) return;
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    if (maxScroll <= 0) return;
-    final ratio = _scrollController.offset / maxScroll;
-    final calcPage = (ratio * (_totalPages - 1)).round() + 1;
-    if (calcPage != _currentPage && calcPage >= 1 && calcPage <= _totalPages) {
-      setState(() => _currentPage = calcPage);
-      SharedPreferences.getInstance().then((p) => p.setInt('page_${widget.filePath}', _currentPage));
-    }
-  }
-
-  Future<void> _initDocument({String? password}) async {
-    setState(() {
-      _isLoading = true;
-      _errorMsg = null;
+  Future<void> _restoreLastPage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final p = prefs.getInt('page_${widget.filePath}') ?? 1;
+    final z = prefs.getDouble('zoom_${widget.filePath}') ?? 1.0;
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted) {
+        _controller.jumpToPage(p);
+        _controller.zoomLevel = z;
+      }
     });
-    try {
-      _document = await pdfx.PdfDocument.openFile(widget.filePath, password: password);
-      _totalPages = _document!.pagesCount;
-      final prefs = await SharedPreferences.getInstance();
-      final savedPage = prefs.getInt('page_${widget.filePath}') ?? 1;
-      final savedBms = prefs.getStringList('bm_${widget.filePath}') ?? [];
-      _userBookmarks = savedBms.map((e) => int.tryParse(e) ?? 1).toSet();
-
-      setState(() {
-        _currentPage = savedPage.clamp(1, _totalPages);
-        _isLoading = false;
-      });
-
-      if (_currentPage > 1) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToPage(_currentPage));
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMsg = e.toString();
-      });
-    }
   }
 
-  void _jumpToPage(int page) {
-    final target = page.clamp(1, _totalPages);
-    setState(() => _currentPage = target);
-    if (_scrollController.hasClients && !_isSinglePageMode) {
-      final maxScroll = _scrollController.position.maxScrollExtent;
-      final targetOffset = ((target - 1) / (_totalPages > 1 ? _totalPages - 1 : 1)) * maxScroll;
-      _scrollController.animateTo(
-        targetOffset,
-        duration: const Duration(milliseconds: 450),
-        curve: Curves.decelerate,
-      );
-    }
-  }
-
-  Future<Uint8List?> _renderPage(int pageNumber) async {
-    if (_renderedPagesCache.containsKey(pageNumber)) {
-      return _renderedPagesCache[pageNumber];
-    }
-    if (_document == null) return null;
-    final page = await _document!.getPage(pageNumber);
-    final pageImage = await page.render(
-      width: page.width * 2.0,
-      height: page.height * 2.0,
-      format: pdfx.PdfPageImageFormat.jpeg,
-      backgroundColor: '#FFFFFF',
-    );
-    await page.close();
-    if (pageImage != null) {
-      if (_renderedPagesCache.length > 12) {
-        _renderedPagesCache.remove(_renderedPagesCache.keys.first);
-      }
-      _renderedPagesCache[pageNumber] = pageImage.bytes;
-      return pageImage.bytes;
-    }
-    return null;
+  Future<void> _savePage(int page) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('page_${widget.filePath}', page);
+    await prefs.setDouble('zoom_${widget.filePath}', _controller.zoomLevel);
   }
 
   @override
   void dispose() {
     WakelockPlus.disable();
     _tts.stop();
-    _scrollController.dispose();
-    _document?.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_errorMsg != null) {
-      final passCtrl = TextEditingController();
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.lock_person_outlined, size: 60, color: Colors.amber),
-              const SizedBox(height: 12),
-              const Text('هذا الملف محمي بكلمة مرور أو يحتاج صلاحية قراءة'),
-              const SizedBox(height: 12),
-              TextField(controller: passCtrl, obscureText: true, decoration: const InputDecoration(hintText: 'أدخل كلمة مرور الملف إن وجدت', border: OutlineInputBorder())),
-              const SizedBox(height: 12),
-              ElevatedButton(onPressed: () => _initDocument(password: passCtrl.text), child: const Text('فتح الملف')),
-            ],
-          ),
-        ),
-      );
-    }
-
     const ColorFilter invertMatrix = ColorFilter.matrix(<double>[
       -1,  0,  0, 0, 255,
        0, -1,  0, 0, 255,
@@ -1091,265 +637,203 @@ class _SmoothPdfReaderViewState extends State<SmoothPdfReaderView> {
        0,  0,  0, 1,   0,
     ]);
 
-    Widget readerBody = Stack(
-      children: [
-        _isSinglePageMode
-            ? PageView.builder(
-                scrollDirection: _isHorizontal ? Axis.horizontal : Axis.vertical,
-                itemCount: _totalPages,
-                onPageChanged: (idx) => setState(() => _currentPage = idx + 1),
-                itemBuilder: (ctx, idx) => _buildInteractivePageItem(idx + 1),
-              )
-            : Scrollbar(
-                controller: _scrollController,
-                thumbVisibility: true,
-                interactive: true,
-                thickness: 8,
-                radius: const Radius.circular(8),
-                child: ListView.builder(
-                  controller: _scrollController,
-                  scrollDirection: _isHorizontal ? Axis.horizontal : Axis.vertical,
-                  physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-                  cacheExtent: 1800,
-                  itemCount: _totalPages,
-                  itemBuilder: (ctx, idx) => _buildInteractivePageItem(idx + 1),
+    final curPage = _controller.pageNumber > 0 ? _controller.pageNumber : 1;
+    final currentStrokes = _strokesByPage[curPage] ?? [];
+
+    Widget pdfWidget = RotatedBox(
+      quarterTurns: _rotation,
+      child: Stack(
+        children: [
+          SfPdfViewer.file(
+            File(widget.filePath),
+            key: _pdfKey,
+            controller: _controller,
+            // تفعيل التمرير السلس المستمر بدون التوقف المفاجئ بين الصفحات
+            pageLayoutMode: _isSinglePage ? PdfPageLayoutMode.single : PdfPageLayoutMode.continuous,
+            scrollDirection: _isHorizontal ? PdfScrollDirection.horizontal : PdfScrollDirection.vertical,
+            enableDoubleTapZooming: true,
+            maxZoomLevel: 5.0,
+            pageSpacing: 2.0,
+            onPageChanged: (d) {
+              setState(() {});
+              _savePage(d.newPageNumber);
+            },
+            onTextSelectionChanged: (d) {
+              if (d.selectedText != null && d.selectedText!.isNotEmpty) {
+                // إمكانية القراءة الصوتية للنص المحدد
+              }
+            },
+          ),
+          if (_drawingMode || currentStrokes.isNotEmpty)
+            Positioned.fill(
+              child: IgnorePointer(
+                ignoring: !_drawingMode,
+                child: GestureDetector(
+                  onPanStart: (d) {
+                    setState(() {
+                      _strokesByPage.putIfAbsent(curPage, () => []);
+                      _strokesByPage[curPage]!.add(DrawStroke([d.localPosition], _penColor, _penWidth));
+                    });
+                  },
+                  onPanUpdate: (d) {
+                    setState(() {
+                      _strokesByPage[curPage]!.last.points.add(d.localPosition);
+                    });
+                  },
+                  child: CustomPaint(painter: StrokePainter(currentStrokes)),
                 ),
               ),
-        if (_brightnessOverlay > 0)
-          IgnorePointer(
-            child: Container(color: Colors.black.withOpacity(_brightnessOverlay)),
-          ),
-        Positioned(
-          bottom: 14,
-          left: 14,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(20)),
-            child: InkWell(
-              onTap: _showJumpAndThumbnailsSheet,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.grid_view_rounded, color: Colors.white, size: 16),
-                  const SizedBox(width: 6),
-                  Text('$_currentPage / $_totalPages', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ],
-              ),
             ),
-          ),
-        ),
-      ],
+          if (_dimOverlay > 0)
+            IgnorePointer(child: Container(color: Colors.black.withOpacity(_dimOverlay))),
+        ],
+      ),
     );
 
-    if (_isNightInverted) {
-      readerBody = ColorFiltered(colorFilter: invertMatrix, child: readerBody);
+    if (_invertColors) {
+      pdfWidget = ColorFiltered(colorFilter: invertMatrix, child: pdfWidget);
     }
 
     return Scaffold(
       appBar: _isFullScreen
           ? null
           : AppBar(
-              toolbarHeight: 48,
-              title: Text(widget.filePath.split('/').last, style: const TextStyle(fontSize: 14)),
+              toolbarHeight: 46,
+              title: _showSearch
+                  ? TextField(
+                      controller: _searchCtrl,
+                      autofocus: true,
+                      decoration: const InputDecoration(hintText: 'ابحث في النص...', border: InputBorder.none),
+                      onSubmitted: (v) => setState(() => _searchResult = _controller.searchText(v)),
+                    )
+                  : Text('${_controller.pageNumber} / ${_controller.pageCount}', style: const TextStyle(fontSize: 14)),
               actions: [
-                IconButton(
-                  icon: Icon(_userBookmarks.contains(_currentPage) ? Icons.bookmark : Icons.bookmark_border, color: Colors.amber),
-                  tooltip: 'إشارة مرجعية لهذه الصفحة',
-                  onPressed: () async {
-                    setState(() {
-                      if (_userBookmarks.contains(_currentPage)) {
-                        _userBookmarks.remove(_currentPage);
-                      } else {
-                        _userBookmarks.add(_currentPage);
+                if (_showSearch) ...[
+                  IconButton(icon: const Icon(Icons.keyboard_arrow_up), onPressed: () => _searchResult.previousInstance()),
+                  IconButton(icon: const Icon(Icons.keyboard_arrow_down), onPressed: () => _searchResult.nextInstance()),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => setState(() {
+                      _showSearch = false;
+                      _searchResult.clear();
+                    }),
+                  ),
+                ] else ...[
+                  IconButton(icon: const Icon(Icons.search), onPressed: () => setState(() => _showSearch = true)),
+                  IconButton(
+                    icon: Icon(_drawingMode ? Icons.check_circle : Icons.draw_outlined, color: _drawingMode ? Colors.green : null),
+                    tooltip: 'القلم والتظليل والتوقيع',
+                    onPressed: _openDrawToolsSheet,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.rotate_90_degrees_ccw),
+                    onPressed: () => setState(() => _rotation = (_rotation + 1) % 4),
+                  ),
+                  IconButton(
+                    icon: Icon(_invertColors ? Icons.light_mode : Icons.dark_mode),
+                    onPressed: _openNightAndBrightnessDialog,
+                  ),
+                  PopupMenuButton<String>(
+                    onSelected: (v) async {
+                      if (v == 'toc') _pdfKey.currentState?.openBookmarkView();
+                      if (v == 'jump') _jumpDialog();
+                      if (v == 'single') setState(() => _isSinglePage = !_isSinglePage);
+                      if (v == 'dir') setState(() => _isHorizontal = !_isHorizontal);
+                      if (v == 'crop') _controller.zoomLevel = _controller.zoomLevel > 1.1 ? 1.0 : 1.35;
+                      if (v == 'full') setState(() => _isFullScreen = true);
+                      if (v == 'note') _pageNoteDialog();
+                      if (v == 'save') {
+                        final bytes = await _controller.saveDocument();
+                        await File(widget.filePath).writeAsBytes(bytes);
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حفظ التعديلات على الملف!')));
                       }
-                    });
-                    final prefs = await SharedPreferences.getInstance();
-                    prefs.setStringList('bm_${widget.filePath}', _userBookmarks.map((e) => '$e').toList());
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.rotate_90_degrees_ccw),
-                  tooltip: 'تدوير الصفحات',
-                  onPressed: () => setState(() => _quarterTurns = (_quarterTurns + 1) % 4),
-                ),
-                IconButton(
-                  icon: Icon(_isNightInverted ? Icons.light_mode : Icons.dark_mode),
-                  tooltip: 'الوضع الليلي والسطوع',
-                  onPressed: _showNightAndBrightnessDialog,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.draw_outlined),
-                  tooltip: 'أدوات التظليل والقلم والتوقيع والتعليقات',
-                  onPressed: _showAnnotationToolbarSheet,
-                ),
-                PopupMenuButton<String>(
-                  onSelected: (val) {
-                    if (val == 'single') setState(() => _isSinglePageMode = !_isSinglePageMode);
-                    if (val == 'dir') setState(() => _isHorizontal = !_isHorizontal);
-                    if (val == 'full') setState(() => _isFullScreen = true);
-                    if (val == 'thumbs') _showJumpAndThumbnailsSheet();
-                    if (val == 'comments') _showCommentsListDialog();
-                    if (val == 'tts') _showTtsReaderDialog();
-                  },
-                  itemBuilder: (ctx) => [
-                    PopupMenuItem(value: 'single', child: Text(_isSinglePageMode ? 'تمرير مستمر ناعم (Smooth Scroll)' : 'عرض صفحة بصفحة')),
-                    PopupMenuItem(value: 'dir', child: Text(_isHorizontal ? 'تمرير رأسي' : 'تمرير أفقي')),
-                    const PopupMenuItem(value: 'full', child: Text('ملء الشاشة الكامل ⛶')),
-                    const PopupMenuItem(value: 'thumbs', child: Text('مصغرات الصفحات والفهرس 📑')),
-                    const PopupMenuItem(value: 'comments', child: Text('قائمة الملاحظات والتعليقات 💬')),
-                    const PopupMenuItem(value: 'tts', child: Text('القارئ الصوتي (TTS) 🔊')),
-                  ],
-                ),
+                      if (v == 'print') Share.shareXFiles([XFile(widget.filePath)]);
+                    },
+                    itemBuilder: (c) => [
+                      const PopupMenuItem(value: 'toc', child: Text('الفهرس (Bookmarks) 📑')),
+                      const PopupMenuItem(value: 'jump', child: Text('انتقال لرقم صفحة 🔢')),
+                      PopupMenuItem(value: 'single', child: Text(_isSinglePage ? 'تمرير مستمر ناعم (Smooth)' : 'صفحة بصفحة')),
+                      PopupMenuItem(value: 'dir', child: Text(_isHorizontal ? 'تمرير رأسي' : 'تمرير أفقي')),
+                      const PopupMenuItem(value: 'crop', child: Text('تكبير الهوامش تلقائياً 🔍')),
+                      const PopupMenuItem(value: 'full', child: Text('وضع ملء الشاشة ⛶')),
+                      const PopupMenuItem(value: 'note', child: Text('ملاحظات لاصقة وقراءة صوتية 🔊')),
+                      const PopupMenuItem(value: 'save', child: Text('حفظ التظليل والنماذج 💾')),
+                      const PopupMenuItem(value: 'print', child: Text('طباعة / مشاركة 🖨️')),
+                    ],
+                  ),
+                ],
               ],
             ),
-      body: readerBody,
+      body: pdfWidget,
       floatingActionButton: _isFullScreen
-          ? FloatingActionButton.small(
-              onPressed: () => setState(() => _isFullScreen = false),
-              child: const Icon(Icons.fullscreen_exit),
-            )
-          : (_activeTool != 'none' ? _buildFloatingDrawingControls() : null),
-    );
-  }
-
-  Widget _buildInteractivePageItem(int pageNum) {
-    final strokes = _pageStrokes[pageNum] ?? [];
-
-    return FutureBuilder<Uint8List?>(
-      future: _renderPage(pageNum),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return Container(
-            height: 520,
-            margin: const EdgeInsets.all(8),
-            color: Colors.grey.shade200,
-            child: Center(child: Text('جاري تحضير صفحة $pageNum...')),
-          );
-        }
-
-        Widget pageContent = RotatedBox(
-          quarterTurns: _quarterTurns,
-          child: Stack(
-            children: [
-              Image.memory(snapshot.data!, fit: BoxFit.contain),
-              Positioned.fill(
-                child: GestureDetector(
-                  onPanStart: _activeTool == 'none'
-                      ? null
-                      : (details) {
+          ? FloatingActionButton.small(onPressed: () => setState(() => _isFullScreen = false), child: const Icon(Icons.fullscreen_exit))
+          : (_drawingMode
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FloatingActionButton.small(
+                      heroTag: 'u1',
+                      onPressed: () {
+                        final list = _strokesByPage[curPage];
+                        if (list != null && list.isNotEmpty) setState(() => _redoStack.add(list.removeLast()));
+                      },
+                      child: const Icon(Icons.undo),
+                    ),
+                    const SizedBox(width: 8),
+                    FloatingActionButton.small(
+                      heroTag: 'r1',
+                      onPressed: () {
+                        if (_redoStack.isNotEmpty) {
                           setState(() {
-                            _pageStrokes.putIfAbsent(pageNum, () => []);
-                            _pageStrokes[pageNum]!.add(
-                              StrokePath(
-                                points: [details.localPosition],
-                                color: _activeTool == 'redaction' ? Colors.black : _penColor,
-                                width: _activeTool == 'highlight' ? 18.0 : (_activeTool == 'redaction' ? 24.0 : _penWidth),
-                                isHighlighter: _activeTool == 'highlight',
-                                isRedaction: _activeTool == 'redaction',
-                              ),
-                            );
+                            _strokesByPage.putIfAbsent(curPage, () => []);
+                            _strokesByPage[curPage]!.add(_redoStack.removeLast());
                           });
-                        },
-                  onPanUpdate: _activeTool == 'none'
-                      ? null
-                      : (details) {
-                          setState(() {
-                            _pageStrokes[pageNum]!.last.points.add(details.localPosition);
-                          });
-                        },
-                  child: CustomPaint(
-                    painter: PageAnnotationPainter(strokes: strokes),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
-          decoration: const BoxDecoration(boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)]),
-          child: InteractiveViewer(
-            panEnabled: _activeTool == 'none',
-            scaleEnabled: _activeTool == 'none',
-            minScale: 1.0,
-            maxScale: 4.5,
-            child: pageContent,
-          ),
-        );
-      },
+                        }
+                      },
+                      child: const Icon(Icons.redo),
+                    ),
+                    const SizedBox(width: 8),
+                    FloatingActionButton.small(
+                      heroTag: 'done1',
+                      backgroundColor: Colors.green,
+                      onPressed: () => setState(() => _drawingMode = false),
+                      child: const Icon(Icons.check),
+                    ),
+                  ],
+                )
+              : null),
     );
   }
 
-  Widget _buildFloatingDrawingControls() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        FloatingActionButton.small(
-          heroTag: 'undo_btn',
-          tooltip: 'تراجع (Undo)',
-          onPressed: () {
-            final list = _pageStrokes[_currentPage];
-            if (list != null && list.isNotEmpty) {
-              setState(() => _redoStack.add(list.removeLast()));
-            }
-          },
-          child: const Icon(Icons.undo),
-        ),
-        const SizedBox(width: 8),
-        FloatingActionButton.small(
-          heroTag: 'redo_btn',
-          tooltip: 'إعادة (Redo)',
-          onPressed: () {
-            if (_redoStack.isNotEmpty) {
-              setState(() {
-                _pageStrokes.putIfAbsent(_currentPage, () => []);
-                _pageStrokes[_currentPage]!.add(_redoStack.removeLast());
-              });
-            }
-          },
-          child: const Icon(Icons.redo),
-        ),
-        const SizedBox(width: 8),
-        FloatingActionButton.extended(
-          heroTag: 'done_draw',
-          backgroundColor: Colors.green,
-          onPressed: () => setState(() => _activeTool = 'none'),
-          icon: const Icon(Icons.check),
-          label: const Text('إنهاء الرسم'),
-        ),
-      ],
-    );
-  }
-
-  void _showAnnotationToolbarSheet() {
+  void _openDrawToolsSheet() {
     showModalBottomSheet(
       context: context,
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Wrap(
           spacing: 10,
           runSpacing: 10,
           children: [
-            const SizedBox(width: double.infinity, child: Text('أدوات التعليق والتظليل والتوقيع:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
             ActionChip(
               avatar: const Icon(Icons.highlight, color: Colors.amber),
-              label: const Text('تظليل نص (Highlight)'),
+              label: const Text('قلم تظليل (Highlight)'),
               onPressed: () {
                 setState(() {
-                  _activeTool = 'highlight';
-                  _penColor = Colors.yellow;
+                  _drawingMode = true;
+                  _penColor = Colors.yellow.withOpacity(0.4);
+                  _penWidth = 18.0;
                 });
                 Navigator.pop(ctx);
               },
             ),
             ActionChip(
               avatar: const Icon(Icons.edit, color: Colors.blue),
-              label: const Text('قلم رسم حر / خط تحت'),
+              label: const Text('قلم حر / تخطيط (Pen)'),
               onPressed: () {
                 setState(() {
-                  _activeTool = 'pen';
-                  _penColor = Colors.blue.shade700;
+                  _drawingMode = true;
+                  _penColor = Colors.blue.shade800;
+                  _penWidth = 3.5;
                 });
                 Navigator.pop(ctx);
               },
@@ -1359,9 +843,9 @@ class _SmoothPdfReaderViewState extends State<SmoothPdfReaderView> {
               label: const Text('توقيع بخط اليد ✍️'),
               onPressed: () {
                 setState(() {
-                  _activeTool = 'pen';
+                  _drawingMode = true;
                   _penColor = Colors.indigo.shade900;
-                  _penWidth = 3.0;
+                  _penWidth = 2.5;
                 });
                 Navigator.pop(ctx);
               },
@@ -1370,218 +854,56 @@ class _SmoothPdfReaderViewState extends State<SmoothPdfReaderView> {
               avatar: const Icon(Icons.visibility_off, color: Colors.black),
               label: const Text('إخفاء معلومات (Redaction)'),
               onPressed: () {
-                setState(() => _activeTool = 'redaction');
-                Navigator.pop(ctx);
-              },
-            ),
-            ActionChip(
-              avatar: const Icon(Icons.note_alt_outlined, color: Colors.orange),
-              label: const Text('إضافة ملاحظة لاصقة / ختم'),
-              onPressed: () {
-                Navigator.pop(ctx);
-                _addStickyNoteOrStampDialog();
-              },
-            ),
-            ActionChip(
-              avatar: const Icon(Icons.cleaning_services, color: Colors.red),
-              label: const Text('ممحاة الصفحة الحالية'),
-              onPressed: () {
-                setState(() => _pageStrokes[_currentPage]?.clear());
-                Navigator.pop(ctx);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _addStickyNoteOrStampDialog() {
-    final noteCtrl = TextEditingController();
-    final authorCtrl = TextEditingController(text: 'مورجان');
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('إضافة تعليق أو ختم في صفحة $_currentPage'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: authorCtrl, decoration: const InputDecoration(labelText: 'اسم المؤلف')),
-            const SizedBox(height: 8),
-            TextField(controller: noteCtrl, maxLines: 4, decoration: const InputDecoration(hintText: 'اكتب ملاحظتك أو اختر ختماً جاهزاً...', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              children: ['مهم للامتحان ✅', 'مراجعة لاحقاً 📌', 'تم الحفظ ⭐'].map((stamp) => ActionChip(
-                label: Text(stamp, style: const TextStyle(fontSize: 11)),
-                onPressed: () => noteCtrl.text = stamp,
-              )).toList(),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-          ElevatedButton(
-            onPressed: () {
-              if (noteCtrl.text.isNotEmpty) {
                 setState(() {
-                  _commentsList.add(StickyNoteItem(page: _currentPage, text: noteCtrl.text, author: authorCtrl.text));
+                  _drawingMode = true;
+                  _penColor = Colors.black;
+                  _penWidth = 22.0;
                 });
-              }
-              Navigator.pop(ctx);
-            },
-            child: const Text('حفظ التعليق'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCommentsListDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('قائمة كل التعليقات والأختام'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 300,
-          child: _commentsList.isEmpty
-              ? const Center(child: Text('لا توجد تعليقات مسجلة بعد'))
-              : ListView.builder(
-                  itemCount: _commentsList.length,
-                  itemBuilder: (c, i) {
-                    final item = _commentsList[i];
-                    return ListTile(
-                      leading: CircleAvatar(child: Text('${item.page}')),
-                      title: Text(item.text),
-                      subtitle: Text('بواسطة: ${item.author}'),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _jumpToPage(item.page);
-                      },
-                    );
-                  },
-                ),
-        ),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إغلاق'))],
-      ),
-    );
-  }
-
-  void _showJumpAndThumbnailsSheet() {
-    final jumpCtrl = TextEditingController();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => SizedBox(
-        height: MediaQuery.of(context).size.height * 0.7,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: jumpCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(hintText: 'اكتب رقم الصفحة (1 - $_totalPages)', border: const OutlineInputBorder()),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      final p = int.tryParse(jumpCtrl.text);
-                      if (p != null) {
-                        Navigator.pop(ctx);
-                        _jumpToPage(p);
-                      }
-                    },
-                    child: const Text('انتقال'),
-                  ),
-                ],
-              ),
-              if (_userBookmarks.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Wrap(
-                    spacing: 6,
-                    children: _userBookmarks.map((b) => ActionChip(
-                      avatar: const Icon(Icons.bookmark, size: 16, color: Colors.amber),
-                      label: Text('صفحة $b'),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _jumpToPage(b);
-                      },
-                    )).toList(),
-                  ),
-                ),
-              ],
-              const Divider(height: 20),
-              const Text('مصغرات الصفحات (Thumbnails)', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Expanded(
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.7, crossAxisSpacing: 8, mainAxisSpacing: 8),
-                  itemCount: _totalPages,
-                  itemBuilder: (c, idx) {
-                    final pNum = idx + 1;
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _jumpToPage(pNum);
-                      },
-                      child: GridTile(
-                        footer: Container(
-                          color: Colors.black54,
-                          padding: const EdgeInsets.all(2),
-                          child: Text('$pNum', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 12)),
-                        ),
-                        child: FutureBuilder<Uint8List?>(
-                          future: _renderPage(pNum),
-                          builder: (c, snap) => snap.hasData
-                              ? Image.memory(snap.data!, fit: BoxFit.cover)
-                              : Container(color: Colors.grey.shade300, child: const Center(child: Icon(Icons.picture_as_pdf))),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+                Navigator.pop(ctx);
+              },
+            ),
+            ActionChip(
+              avatar: const Icon(Icons.delete_sweep, color: Colors.red),
+              label: const Text('مسح رسومات الصفحة (ممحاة)'),
+              onPressed: () {
+                setState(() {
+                  _strokesByPage[_controller.pageNumber]?.clear();
+                  _drawingMode = false;
+                });
+                Navigator.pop(ctx);
+              },
+            ),
+          ],
         ),
       ),
     );
   }
 
-  void _showNightAndBrightnessDialog() {
+  void _openNightAndBrightnessDialog() {
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
+        builder: (c, setSt) => AlertDialog(
           title: const Text('الوضع الليلي والسطوع'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               SwitchListTile(
                 title: const Text('عكس ألوان الصفحات للأسود'),
-                value: _isNightInverted,
+                value: _invertColors,
                 onChanged: (v) {
-                  setState(() => _isNightInverted = v);
-                  setDialogState(() {});
+                  setState(() => _invertColors = v);
+                  setSt(() {});
                 },
               ),
-              const SizedBox(height: 10),
-              const Text('تعتيم إضافي للشاشة (حماية العين ليلاً):'),
+              const Text('تعتيم الشاشة لراحة العين:'),
               Slider(
-                value: _brightnessOverlay,
+                value: _dimOverlay,
                 min: 0.0,
                 max: 0.75,
                 onChanged: (v) {
-                  setState(() => _brightnessOverlay = v);
-                  setDialogState(() {});
+                  setState(() => _dimOverlay = v);
+                  setSt(() {});
                 },
               ),
             ],
@@ -1592,23 +914,59 @@ class _SmoothPdfReaderViewState extends State<SmoothPdfReaderView> {
     );
   }
 
-  void _showTtsReaderDialog() {
-    final ttsCtrl = TextEditingController();
+  void _jumpDialog() {
+    final ctrl = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('القارئ الصوتي الذكي (TTS)'),
-        content: TextField(
-          controller: ttsCtrl,
-          maxLines: 4,
-          decoration: const InputDecoration(hintText: 'ألصق أو اكتب الفقرة المراد سماعها صوتياً...', border: OutlineInputBorder()),
+        title: Text('انتقال لصفحة (1 - ${_controller.pageCount})'),
+        content: TextField(controller: ctrl, keyboardType: TextInputType.number),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () {
+              final p = int.tryParse(ctrl.text);
+              if (p != null) _controller.jumpToPage(p);
+              Navigator.pop(ctx);
+            },
+            child: const Text('انتقال'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _pageNoteDialog() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'note_${widget.filePath}_${_controller.pageNumber}';
+    final ctrl = TextEditingController(text: prefs.getString(key) ?? '');
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('ملاحظات وأختام صفحة ${_controller.pageNumber}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: ctrl, maxLines: 4, decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'اكتب ملاحظتك أو نصاً لقراءته صوتياً...')),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              children: ['مهم للامتحان ✅', 'مراجعة 📌', 'سؤال متوقع ⭐'].map((s) => ActionChip(
+                label: Text(s, style: const TextStyle(fontSize: 11)),
+                onPressed: () => ctrl.text = '${ctrl.text} [$s]',
+              )).toList(),
+            ),
+          ],
         ),
         actions: [
-          TextButton(onPressed: () => _tts.stop(), child: const Text('إيقاف الصوت')),
-          ElevatedButton.icon(
-            onPressed: () => _tts.speak(ttsCtrl.text),
-            icon: const Icon(Icons.volume_up),
-            label: const Text('قراءة الآن'),
+          IconButton(icon: const Icon(Icons.volume_up, color: Colors.blue), onPressed: () => _tts.speak(ctrl.text)),
+          ElevatedButton(
+            onPressed: () async {
+              await prefs.setString(key, ctrl.text);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('حفظ'),
           ),
         ],
       ),
@@ -1616,19 +974,18 @@ class _SmoothPdfReaderViewState extends State<SmoothPdfReaderView> {
   }
 }
 
-class PageAnnotationPainter extends CustomPainter {
-  final List<StrokePath> strokes;
-  PageAnnotationPainter({required this.strokes});
+class StrokePainter extends CustomPainter {
+  final List<DrawStroke> strokes;
+  StrokePainter(this.strokes);
 
   @override
   void paint(Canvas canvas, Size size) {
     for (final s in strokes) {
       final paint = Paint()
-        ..color = s.isHighlighter ? s.color.withOpacity(0.38) : s.color
+        ..color = s.color
         ..strokeWidth = s.width
-        ..strokeCap = s.isRedaction ? StrokeCap.square : StrokeCap.round
+        ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke;
-
       for (int i = 0; i < s.points.length - 1; i++) {
         canvas.drawLine(s.points[i], s.points[i + 1], paint);
       }
