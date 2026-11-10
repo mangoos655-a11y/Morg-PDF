@@ -29,7 +29,7 @@ class MorganPdfProApp extends StatefulWidget {
 
 class _MorganPdfProAppState extends State<MorganPdfProApp> {
   ThemeMode _themeMode = ThemeMode.system;
-  Color _SeedColor = Colors.blue.shade800;
+  Color _seedColor = Colors.blue.shade800;
   bool _isArabic = true;
   String? _savedPin;
   bool _isUnlocked = false;
@@ -45,7 +45,7 @@ class _MorganPdfProAppState extends State<MorganPdfProApp> {
     setState(() {
       final t = prefs.getString('theme_mode') ?? 'system';
       _themeMode = t == 'dark' ? ThemeMode.dark : (t == 'light' ? ThemeMode.light : ThemeMode.system);
-      _SeedColor = Color(prefs.getInt('theme_color') ?? Colors.blue.shade800.value);
+      _seedColor = Color(prefs.getInt('theme_color') ?? Colors.blue.shade800.value);
       _isArabic = prefs.getBool('is_arabic') ?? true;
       _savedPin = prefs.getString('app_pin');
       if (_savedPin == null || _savedPin!.isEmpty) _isUnlocked = true;
@@ -60,7 +60,7 @@ class _MorganPdfProAppState extends State<MorganPdfProApp> {
         prefs.setString('theme_mode', mode == ThemeMode.dark ? 'dark' : (mode == ThemeMode.light ? 'light' : 'system'));
       }
       if (color != null) {
-        _SeedColor = color;
+        _seedColor = color;
         prefs.setInt('theme_color', color.value);
       }
       if (arabic != null) {
@@ -80,8 +80,8 @@ class _MorganPdfProAppState extends State<MorganPdfProApp> {
       title: 'Morgan PDF',
       debugShowCheckedModeBanner: false,
       themeMode: _themeMode,
-      theme: ThemeData(colorSchemeSeed: _SeedColor, useMaterial3: true, brightness: Brightness.light),
-      darkTheme: ThemeData(colorSchemeSeed: _SeedColor, useMaterial3: true, brightness: Brightness.dark),
+      theme: ThemeData(colorSchemeSeed: _seedColor, useMaterial3: true, brightness: Brightness.light),
+      darkTheme: ThemeData(colorSchemeSeed: _seedColor, useMaterial3: true, brightness: Brightness.dark),
       builder: (context, child) {
         return Directionality(
           textDirection: _isArabic ? TextDirection.rtl : TextDirection.ltr,
@@ -95,7 +95,7 @@ class _MorganPdfProAppState extends State<MorganPdfProApp> {
       },
       home: MainWorkspace(
         isArabic: _isArabic,
-        seedColor: _SeedColor,
+        seedColor: _seedColor,
         themeMode: _themeMode,
         onUpdateSettings: _updateSettings,
       ),
@@ -103,7 +103,6 @@ class _MorganPdfProAppState extends State<MorganPdfProApp> {
   }
 }
 
-// شاشة القفل برقم سري لحماية الخصوصية
 class PinLockScreen extends StatefulWidget {
   final String correctPin;
   final VoidCallback onUnlocked;
@@ -160,7 +159,6 @@ class _PinLockScreenState extends State<PinLockScreen> {
   }
 }
 
-// اللوجو المدمج (الكتاب الأزرق المفتوح والعدسة المكبرة وكلمة PDF)
 class MorganLogo extends StatelessWidget {
   final double size;
   const MorganLogo({super.key, this.size = 90});
@@ -221,8 +219,8 @@ class _MainWorkspaceState extends State<MainWorkspace> {
 
   List<String> _recentFiles = [];
   List<String> _favoriteFiles = [];
-  Map<String, String> _fileTags = {}; // مسار الملف -> اسم المجلد/الوسم
-  List<String> _openTabs = []; // التبويبات المفتوحة حالياً
+  Map<String, String> _fileTags = {};
+  List<String> _openTabs = [];
   int _activeTabIndex = 0;
 
   @override
@@ -232,7 +230,6 @@ class _MainWorkspaceState extends State<MainWorkspace> {
     _checkExternalIntent();
   }
 
-  // فحص إذا تم فتح ملف من تليجرام أو مدير الملفات
   Future<void> _checkExternalIntent() async {
     try {
       final String? initialPath = await _intentChannel.invokeMethod<String>('getInitialFile');
@@ -287,7 +284,7 @@ class _MainWorkspaceState extends State<MainWorkspace> {
     }
     _activeTabIndex = _openTabs.indexOf(path);
     await _saveFilesData();
-    setState(() => _navIndex = 1); // الانتقال لشاشة القارئ والتبويبات
+    setState(() => _navIndex = 1);
   }
 
   Future<void> _pickPdfFile() async {
@@ -300,7 +297,6 @@ class _MainWorkspaceState extends State<MainWorkspace> {
     }
   }
 
-  // أداة تحويل الصور أو الكاميرا إلى ملف PDF جديد
   Future<void> _convertImagesToPdf({required bool fromCamera}) async {
     final picker = ImagePicker();
     List<XFile> images = [];
@@ -333,7 +329,6 @@ class _MainWorkspaceState extends State<MainWorkspace> {
     _addAndOpenFile(outFile.path);
   }
 
-  // أداة إنشاء ملف PDF جديد فارغ للملاحظات أو بعلامة مائية
   Future<void> _createCustomPdfDialog() async {
     final titleCtrl = TextEditingController(text: 'مذكرة جديدة');
     final watermarkCtrl = TextEditingController();
@@ -435,7 +430,6 @@ class _MainWorkspaceState extends State<MainWorkspace> {
     );
   }
 
-  // 1. شاشة الملفات والتنظيم (أخيرة / مفضلة / مجلدات وأوسمة)
   Widget _buildHomeFilesTab() {
     return DefaultTabController(
       length: 3,
@@ -633,7 +627,6 @@ class _MainWorkspaceState extends State<MainWorkspace> {
     );
   }
 
-  // 2. شاشة القارئ مع التبويبات المتعددة (Multiple Tabs)
   Widget _buildReaderTabsScreen() {
     if (_openTabs.isEmpty) {
       return Scaffold(
@@ -653,7 +646,6 @@ class _MainWorkspaceState extends State<MainWorkspace> {
 
     return Column(
       children: [
-        // شريط التبويبات العلوي لفتح عدة ملفات في نفس الوقت
         Container(
           color: Theme.of(context).colorScheme.surfaceVariant,
           height: 44,
@@ -703,7 +695,6 @@ class _MainWorkspaceState extends State<MainWorkspace> {
     );
   }
 
-  // 3. شاشة الأدوات والتحويل وإدارة الصفحات والحماية
   Widget _buildToolsAndConvertTab() {
     return Scaffold(
       appBar: AppBar(title: const Text('أدوات PDF والتحويل والإدارة')),
@@ -825,7 +816,6 @@ class _MainWorkspaceState extends State<MainWorkspace> {
     );
   }
 
-  // 4. شاشة الإعدادات الشاملة والتصميم والحماية
   Widget _buildSettingsTab() {
     return Scaffold(
       appBar: AppBar(title: const Text('الإعدادات والتخصيص والحماية')),
@@ -921,18 +911,6 @@ class _MainWorkspaceState extends State<MainWorkspace> {
   }
 }
 
-// ============================================================================
-// محرك القراءة السلس (Smooth Physics Reader) + التعليقات والرسم الحر والتوقيع
-// ============================================================================
-
-class SmoothPdfReaderView extends StatefulWidget {
-  final String filePath;
-  const SmoothPdfReaderView({super.key, required this.filePath});
-
-  @override
-  State<SmoothPdfReaderView> createState() => _SmoothPdfReaderViewState();
-}
-
 class StrokePath {
   final List<Offset> points;
   final Color color;
@@ -967,24 +945,21 @@ class _SmoothPdfReaderViewState extends State<SmoothPdfReaderView> {
   bool _isLoading = true;
   String? _errorMsg;
 
-  // إعدادات العرض والقراءة
   bool _isHorizontal = false;
   bool _isSinglePageMode = false;
   bool _isFullScreen = false;
   bool _isNightInverted = false;
-  double _brightnessOverlay = 0.0; // لتقليل السطوع ليلاً
-  int _quarterTurns = 0; // تدوير الصفحات (90 درجة)
+  double _brightnessOverlay = 0.0;
+  int _quarterTurns = 0;
   Set<int> _userBookmarks = {};
 
-  // أدوات الرسم الحر والتظليل والممحاة والـ Redaction والتوقيع
-  String _activeTool = 'none'; // none, pen, highlight, redaction, signature
+  String _activeTool = 'none';
   Color _penColor = Colors.amber;
   double _penWidth = 4.0;
   final Map<int, List<StrokePath>> _pageStrokes = {};
   final List<StrokePath> _redoStack = [];
   final List<StickyNoteItem> _commentsList = [];
 
-  // كاش صور الصفحات لضمان نعومة الـ Scroll بدون تقطيع
   final Map<int, Uint8List> _renderedPagesCache = {};
 
   @override
@@ -1045,7 +1020,7 @@ class _SmoothPdfReaderViewState extends State<SmoothPdfReaderView> {
       _scrollController.animateTo(
         targetOffset,
         duration: const Duration(milliseconds: 450),
-        curve: Curves.decelerate, // حركة توقف ناعمة وهادئة جداً
+        curve: Curves.decelerate,
       );
     }
   }
@@ -1088,7 +1063,6 @@ class _SmoothPdfReaderViewState extends State<SmoothPdfReaderView> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // في حال كان الملف محمياً بكلمة مرور
     if (_errorMsg != null) {
       final passCtrl = TextEditingController();
       return Center(
@@ -1119,7 +1093,6 @@ class _SmoothPdfReaderViewState extends State<SmoothPdfReaderView> {
 
     Widget readerBody = Stack(
       children: [
-        // 1. عارض الصفحات بفيزياء التمرير الانسيابي الهادئ (Smooth Deceleration Physics)
         _isSinglePageMode
             ? PageView.builder(
                 scrollDirection: _isHorizontal ? Axis.horizontal : Axis.vertical,
@@ -1136,21 +1109,16 @@ class _SmoothPdfReaderViewState extends State<SmoothPdfReaderView> {
                 child: ListView.builder(
                   controller: _scrollController,
                   scrollDirection: _isHorizontal ? Axis.horizontal : Axis.vertical,
-                  // فيزياء تمرير ناعمة جداً تتباطأ بهدوء قبل التوقف
                   physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                   cacheExtent: 1800,
                   itemCount: _totalPages,
                   itemBuilder: (ctx, idx) => _buildInteractivePageItem(idx + 1),
                 ),
               ),
-
-        // 2. طبقة التحكم في السطوع الليلي لحماية العين
         if (_brightnessOverlay > 0)
           IgnorePointer(
             child: Container(color: Colors.black.withOpacity(_brightnessOverlay)),
           ),
-
-        // 3. عداد الصفحات العائم وأزرار التحكم السريع
         Positioned(
           bottom: 14,
           left: 14,
@@ -1244,7 +1212,6 @@ class _SmoothPdfReaderViewState extends State<SmoothPdfReaderView> {
     );
   }
 
-  // بناء كل صفحة مع دعم التكبير (Pinch + Double Tap) والرسم الحر بالقلم والتظليل
   Widget _buildInteractivePageItem(int pageNum) {
     final strokes = _pageStrokes[pageNum] ?? [];
 
@@ -1299,7 +1266,6 @@ class _SmoothPdfReaderViewState extends State<SmoothPdfReaderView> {
           ),
         );
 
-        // دعم التكبير بالقرص (Pinch Zoom) والضغط المزدوج
         return Container(
           margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
           decoration: const BoxDecoration(boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)]),
@@ -1356,7 +1322,6 @@ class _SmoothPdfReaderViewState extends State<SmoothPdfReaderView> {
     );
   }
 
-  // شريط أدوات التعليقات: تظليل، قلم حر، ممحاة، توقيع، أختام، ملاحظات لاصقة، إخفاء معلومات (Redaction)
   void _showAnnotationToolbarSheet() {
     showModalBottomSheet(
       context: context,
@@ -1503,7 +1468,6 @@ class _SmoothPdfReaderViewState extends State<SmoothPdfReaderView> {
     );
   }
 
-  // نافذة مصغرات الصفحات (Thumbnails) والانتقال لصفحة والإشارات المرجعية
   void _showJumpAndThumbnailsSheet() {
     final jumpCtrl = TextEditingController();
     showModalBottomSheet(
