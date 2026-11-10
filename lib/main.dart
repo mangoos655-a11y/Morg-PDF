@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -170,35 +170,28 @@ class MainWorkspace extends StatefulWidget {
 }
 
 class _MainWorkspaceState extends State<MainWorkspace> {
+  static const MethodChannel _channel = MethodChannel('app.channel.shared.data');
   int _navIndex = 0;
   List<String> _recentFiles = [];
   List<String> _favFiles = [];
   Map<String, String> _fileTags = {};
   List<String> _openTabs = [];
   int _activeTab = 0;
-  StreamSubscription? _intentSub;
 
   @override
   void initState() {
     super.initState();
     _loadData();
-    _listenExternalFiles();
+    _checkSharedFile();
   }
 
-  void _listenExternalFiles() {
-    _intentSub = ReceiveSharingIntent.getMediaStream().listen((List<SharedMediaFile> value) {
-      if (value.isNotEmpty) _openPdfFile(value.first.path);
-    }, onError: (_) {});
-
-    ReceiveSharingIntent.getInitialMedia().then((List<SharedMediaFile> value) {
-      if (value.isNotEmpty) _openPdfFile(value.first.path);
-    });
-  }
-
-  @override
-  void dispose() {
-    _intentSub?.cancel();
-    super.dispose();
+  Future<void> _checkSharedFile() async {
+    try {
+      final String? path = await _channel.invokeMethod<String>('getSharedPdf');
+      if (path != null && path.isNotEmpty) {
+        _openPdfFile(path);
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadData() async {
@@ -648,7 +641,6 @@ class _AdvancedPdfViewerState extends State<AdvancedPdfViewer> {
             File(widget.filePath),
             key: _pdfKey,
             controller: _controller,
-            // تفعيل التمرير السلس المستمر بدون التوقف المفاجئ بين الصفحات
             pageLayoutMode: _isSinglePage ? PdfPageLayoutMode.single : PdfPageLayoutMode.continuous,
             scrollDirection: _isHorizontal ? PdfScrollDirection.horizontal : PdfScrollDirection.vertical,
             enableDoubleTapZooming: true,
@@ -657,11 +649,6 @@ class _AdvancedPdfViewerState extends State<AdvancedPdfViewer> {
             onPageChanged: (d) {
               setState(() {});
               _savePage(d.newPageNumber);
-            },
-            onTextSelectionChanged: (d) {
-              if (d.selectedText != null && d.selectedText!.isNotEmpty) {
-                // إمكانية القراءة الصوتية للنص المحدد
-              }
             },
           ),
           if (_drawingMode || currentStrokes.isNotEmpty)
